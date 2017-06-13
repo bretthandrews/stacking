@@ -13,7 +13,6 @@ import numpy as np
 from scipy import interpolate
 import pandas as pd
 import sklearn
-from astropy.io import fits
 
 from stacking.utils.general import deredden
 
@@ -55,26 +54,22 @@ with open(path_filelist, 'r') as fin:
 spectra = np.zeros((len(filenames), len(grid)))
 
 for ii, filename in enumerate(filenames):
-    
+
     ind = get_table_index(table, filename)
+    
     spec_obs, wave_cen_pix1, ang_per_pix = load_spectrum(filename)
     wave_rest = rest_wavelenghts(wave_cen_pix1, ang_per_pix, len(spec_obs))
+    
+    spec_dered = deredden(wave_rest, spec_obs, table.ebv[ind])
+    spec_raw = spec_dered * (1 + table.z[ind])
 
-
-# correct for MW reddening and shift to rest frame
-spec_dered = deredden(wave_rest, spec_obs, table.ebv[ind])
-spec_raw = spec_dered * (1 + table.z[ind])
-
-linearly_interpolate = interpolate.interp1d(wave_rest, spec_raw, bounds_error=False, fill_value=0.)
-spec_regrid = linearly_interpolate(grid)
-
-# compute mean continuum flux from w1 to w2 (4400--4500 Angstroms)
-w1 = np.where(grid == 4400)
-w2 = np.where(grid == 4450)
-mean_cont_flux = np.mean(spec_regrid[w1[0][0]:w2[0][0]+1])
-
-spec_normalized = spec_regrid / mean_cont_flux
-spectra[ii] = spec_normalized
+    linearly_interpolate = interpolate.interp1d(wave_rest, spec_raw, bounds_error=False, fill_value=0.)
+    spec_regrid = linearly_interpolate(grid)
+    
+    mean_cont_flux = mean_flux(spec_regrid, wave_low=4400, wave_upp=4500)
+    spec_normalized = spec_regrid / mean_cont_flux
+    
+    spectra[ii] = spec_normalized
 
 
 stacks = np.zeros((n_samples, len(grid)))
@@ -82,60 +77,3 @@ for ii in range(n_samples):
     spectra_resampled = sklearn.utils.resample(spectra)
     stack_spec = np.mean(spectra_resampled, axis=1)
 
-
-
-def get_table_index(table, filename):
-    """Get index of table corresponding to spectrum.
-    
-    Parameters:
-        table (DataFrame):
-            Table of galaxy properties.
-        filename (str):
-            Name of spectrum FITS file.
-
-    Returns:
-        int
-    """
-    mjd, pid, fid = [int(it) for it in filename.split('spSpec-')[-1].strip('.fit').split('-')]
-    ind_mjd = np.where(table.mjd == mjd)
-    ind_pid = np.where(table.pid == pid)
-    ind_fid = np.where(table.fid == fid)
-    return reduce(np.intersect1d, (ind_mjd, ind_pid, ind_fid))[0]
-
-
-def load_spectrum(filename):
-    """Load spectrum from FITS file.
-    
-    Parameters:
-        filename (str):
-            Name of spectrum FITS file.
-
-    Returns:
-        array, float, float
-    """
-    fitsobj = fits.open(filename)
-    spec_obs = fitsobj[0].data[0]
-    wave_cen_pix1 = fitsobj[0].header['COEFF0']  # central wavelength of first pixel
-    ang_per_pix = fitsobj[0].header['COEFF1']    # Angstroms per pixel
-    fitsobj.close()
-    return spec_obs, wave_cen_pix1, ang_per_pix
-
-
-def rest_wavelengths(wave_cen_pix1, ang_per_pix, spec_len, redshift):
-    """Create rest wavelength array.
-
-    Parameters:
-        wave_cen_pix1 (float):
-            Central wavelength of first pixel.
-        ang_per_pix (float):
-            Angstroms per pixel.
-        spec_len (int):
-            Length of spectrum.
-        redshift (float):
-            Redshift of galaxy.
-    Returns:
-        array
-    """
-    vac = 10.**(wave_cen_pix1 + ang_per_pix * np.arange(spec_len))
-    air = vac / (1.0 + 2.735182E-4 + 131.4182 / vac**2 + 2.76249E8 / vac**4)
-    return air / (1 + redshift)
