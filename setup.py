@@ -12,6 +12,6 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        generate_filepaths=stacking.scripts.file_transfer:generate_filepaths
+        generate_filepaths=stacking.scripts.paths:generate_filepaths
     ''',
 )

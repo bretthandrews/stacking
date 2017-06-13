@@ -10,7 +10,7 @@ pip install -e ~/projects/stacking
 
 Run:
 ```
-copy_spectra --binnames M8.2_8.3
+generate_filepaths --binnames M8.2_8.3
 ```
 
 ## Acknowledgements
