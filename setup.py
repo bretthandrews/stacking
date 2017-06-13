@@ -8,10 +8,10 @@ setup(
     install_requires=[
         'numpy',
         'Click',
-        'astropy',
+        'pandas',
     ],
     entry_points='''
         [console_scripts]
-        copy_spectra=stacking.scripts.file_transfer:copy_spectra
+        generate_filepaths=stacking.scripts.file_transfer:generate_filepaths
     ''',
 )
