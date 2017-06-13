@@ -1,4 +1,4 @@
-# copy_spectra.py
+# paths.py
 #
 # Created by Brett H. Andrews on 12 Jun 2017.
 
@@ -40,7 +40,7 @@ def generate_filepaths(stackname, binnames, path_mzr, overwrite):
     path_mzr = path_mzr if path_mzr is not None else path_mzr_default
     assert os.path.isdir(path_mzr), f'``path_mzr`` does not exist: {path_mzr}'
 
-    # stacks directory on MacBok Air
+    # stacks directory on MacBook Air
     path_stack = join(path_mzr, 'stacks', stackname)
     assert os.path.isdir(path_stack), f'``path_stack`` does not exist: {path_stack}'
 
