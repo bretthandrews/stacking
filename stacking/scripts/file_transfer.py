@@ -48,26 +48,25 @@ def copy_spectra(stackname, binnames, path_mzr):
 
     
     for binname in binnames:
-        if 'M7.2' in binname:
-            path_filelist = join(path_stack, binname.split('_n')[0], 'filelist',
-                                 binname + '_filenames.txt')
+        path_filelist = join(path_stack, binname.split('_n')[0], 'filelist',
+                             binname + '_filenames.txt')
 
-            import ipdb; ipdb.set_trace()
-            files = pd.read_csv(path_filelist, delim_whitespace=True, header=None, usecols=(8,))
-            files.columns = ['paths']
-            dir_ext_hd, filename = files['paths'][0].split('/')[-2:]
-            pid, mjd = dir_ext_hd.split('-')[-2:]
+        files = pd.read_csv(path_filelist, delim_whitespace=True, header=None, usecols=(8,))
+
+        files.columns = ['paths']
+        dir_ext_hd, filename = files['paths'][0].split('/')[-2:]
+        pid, mjd = dir_ext_hd.split('-')[-2:]
+        
+        path_ext_hd = join(path_data, dir_ext_hd, filename)
+        
+        path_dr7 = join(path_mzr, 'data', 'raw_fits_dr7')
+        path_mjd_pid = join(path_dr7, mjd, pid)
+        if not os.path.isdir(path_mjd_pid):
+            os.makedirs(path_mjd_pid)
+
+        path_local = join(path_mjd_pid, filename)
             
-            path_ext_hd = join(path_data, dir_ext_hd, filename)
-            
-            path_dr7 = join(path_mzr, 'data', 'raw_fits_dr7')
-            path_mjd_pid = join(path_dr7, mjd, pid)
-            if not os.path.isdir(path_mjd_pid):
-                os.makedirs(path_mjd_pid)
-            
-            path_local = join(path_mjd_pid, filename)
-            
-            # shutil.copy(path_ext_hd, path_local)
+        # shutil.copy(path_ext_hd, path_local)
 
     
     
