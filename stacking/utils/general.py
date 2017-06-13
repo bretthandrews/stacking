@@ -5,6 +5,8 @@
 # Created by Brett H. Andrews on 13 Jun 2017.
 
 
+from functools import reduce
+
 import numpy as np
 from astropy.io import fits
 
@@ -28,12 +30,14 @@ def deredden(wave, flux_obs, ebv, R_V=3.1):
     return flux_dered
 
 
-def mean_flux(spectrum, wave_low, wave_upp):
+def mean_flux(spectrum, grid, wave_low, wave_upp):
     """Compute mean flux in a wavelength window.
     
     Parameters:
         spectrum (array):
             Spectrum.
+        grid (array):
+            Wavelength grid.
         wave_low (float):
             Blue limit of wavelength window in Angstroms.
         wave_upp (float):
@@ -84,7 +88,7 @@ def load_spectrum(filename):
     return spec_obs, wave_cen_pix1, ang_per_pix
 
 
-def rest_wavelengths(wave_cen_pix1, ang_per_pix, spec_len, redshift):
+def rest_wave(wave_cen_pix1, ang_per_pix, spec_len, redshift):
     """Create rest wavelength array.
 
     Parameters:
