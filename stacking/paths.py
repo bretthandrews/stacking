@@ -9,7 +9,6 @@ from functools import reduce
 
 import click
 import numpy as np
-import pandas as pd
 
 
 @click.command()
@@ -19,7 +18,7 @@ import pandas as pd
 @click.option('--overwrite', '-o', default=False, is_flag=True)
 def generate_filepaths(stackname, binnames, path_mzr, overwrite):
     """Build file paths to spectra on passport external hard drive.
-    
+
     Parameters:
         stackname (str):
             Name of the set of stacks. Default is ``dr7_M0.1e``.
@@ -28,9 +27,9 @@ def generate_filepaths(stackname, binnames, path_mzr, overwrite):
             all bins.
         path_mzr (str):
             Path to the parent directory containing the stack data,
-            scripts, etc. Default is ``None``.   
+            scripts, etc. Default is ``None``.
         overwrite (bool):
-            If ``True``, overwrite existing files. Default is ``False``.         
+            If ``True``, overwrite existing files. Default is ``False``.
     """
     # data directory on passport external hard drive
     path_data = join('//', 'Volumes', 'My Passport', 'osu', 'andrews', 'projects',
@@ -72,20 +71,20 @@ def generate_filepaths(stackname, binnames, path_mzr, overwrite):
         filelist_out = join(path_filelists, binpar + '.txt')
 
         if not os.path.isfile(filelist_out) or overwrite:
-            
+
             with open(filelist_out, 'w') as fout:
                 for it in files_passport:
                     fout.write(it + '\n')
-            
+
             click.echo(f'{filelist_out}')
-        
+
         else:
             click.echo(f'Not written (overwrite with --overwrite): {filelist_out}')
 
 
 def get_table_index(table, filename):
     """Get index of table corresponding to spectrum.
-    
+
     Parameters:
         table (DataFrame):
             Table of galaxy properties.
@@ -100,6 +99,3 @@ def get_table_index(table, filename):
     ind_pid = np.where(table.pid == pid)
     ind_fid = np.where(table.fid == fid)
     return reduce(np.intersect1d, (ind_mjd, ind_pid, ind_fid))[0]
-
-
-
