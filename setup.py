@@ -6,12 +6,16 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
+        'click',
         'numpy',
-        'Click',
+        'scipy',
         'pandas',
+        'sklearn',
+        'astropy'
     ],
     entry_points='''
         [console_scripts]
-        generate_filepaths=stacking.scripts.paths:generate_filepaths
+        generate_filepaths=stacking.scripts.paths:generate_filepaths,
+        process_spectra=stacking.scripts.spectral_processing:process_spectra
     ''',
 )

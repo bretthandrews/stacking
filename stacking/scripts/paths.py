@@ -80,5 +80,24 @@ def generate_filepaths(stackname, binnames, path_mzr, overwrite):
         else:
             click.echo(f'Not written (overwrite with --overwrite): {filelist_out}')
 
+
+def get_table_index(table, filename):
+    """Get index of table corresponding to spectrum.
     
+    Parameters:
+        table (DataFrame):
+            Table of galaxy properties.
+        filename (str):
+            Name of spectrum FITS file.
+
+    Returns:
+        int
+    """
+    mjd, pid, fid = [int(it) for it in filename.split('spSpec-')[-1].strip('.fit').split('-')]
+    ind_mjd = np.where(table.mjd == mjd)
+    ind_pid = np.where(table.pid == pid)
+    ind_fid = np.where(table.fid == fid)
+    return reduce(np.intersect1d, (ind_mjd, ind_pid, ind_fid))[0]
+
+
 
