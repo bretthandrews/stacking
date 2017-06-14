@@ -5,8 +5,10 @@
 
 import os
 from os.path import join
+from functools import reduce
 
 import click
+import numpy as np
 import pandas as pd
 
 

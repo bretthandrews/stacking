@@ -15,7 +15,7 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        generate_filepaths=stacking.scripts.paths:generate_filepaths,
-        process_spectra=stacking.scripts.spectral_processing:process_spectra
+        generate_filepaths=stacking.paths:generate_filepaths
+        process_spectra=stacking.spectral_processing:process_spectra
     ''',
 )
