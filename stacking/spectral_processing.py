@@ -9,13 +9,15 @@
 
 import os
 from os.path import join
-from functools import reduce
+import pickle
 
 import numpy as np
-from scipy import interpolate
+from scipy.interpolate import interp1d
 import pandas as pd
 from astropy.io import fits
 import click
+
+from stacking.paths import get_table_index
 
 
 @click.command()
@@ -32,71 +34,90 @@ def process_spectra(filelists, overwrite):
             If ``True``, overwrite existing files. Default is ``False``.         
     """
 
-path_mzr = join(os.path.expanduser('~'), 'projects', 'mzr')
+    path_mzr = join(os.path.expanduser('~'), 'projects', 'mzr')
+    path_dr7 = join(path_mzr, 'stacks', 'dr7_M0.1e')
 
-# Read in redshift and E(B-V) values
-path_meta = join(path_mzr, 'data', 'raw_FITS_extras_dr7')
-table = pd.read_csv(join(path_meta, 'master_data_dr7b.csv'))
+    # Read in redshift and E(B-V) values
+    path_meta = join(path_mzr, 'data', 'raw_FITS_extras_dr7')
+    table = pd.read_csv(join(path_meta, 'master_data_dr7b.csv'))
 
-path_filelists = join(path_mzr, 'stacks', 'dr7_M0.1e', 'filelists')
-filelists = None  # Remove............................................................................
-filelists = os.listdir(path_filelists) if filelists is None else filelists
-
-
-grid = np.arange(3700, 7360.1, 1.0, float)
-
-# for filelist in filelists:
-
-filelist = 'M8.2_8.3.txt'  # Remove....................................................................
-path_filelist = join(path_filelists, filelist)
-
-with open(path_filelist, 'r') as fin:
-    filenames = [line.strip() for line in fin]
-
-# def load_spectra(filenames, redshifts, ebvs):
-spectra = np.zeros((len(filenames), len(grid)))
-
-for ii, filename in enumerate(filenames):
-
-    ind = get_table_index(table, filename)
+    path_filelists = join(path_dr7, 'filelists')
+    # filelists = ['M8.2_8.3.txt']  # Remove..........................................................
+    filelists = os.listdir(path_filelists) if filelists is None else filelists
     
-    spec_obs, wave_cen_pix1, ang_per_pix = load_spectrum(filename)
-    wave_rest = rest_wave(wave_cen_pix1, ang_per_pix, len(spec_obs), table.z[ind])
-    spec_dered = deredden(wave_rest, spec_obs, table.ebv[ind])
-    spec_raw = spec_dered * (1 + table.z[ind])
-
-    linear_interp = interpolate.interp1d(wave_rest, spec_raw, bounds_error=False, fill_value=0.)
-    spec_regrid = linear_interp(grid)
     
-    mean_cont_flux = mean_flux(spec_regrid, grid, wave_low=4400, wave_upp=4500)
-    spec_normalized = spec_regrid / mean_cont_flux
+    for filelist in filelists:
+        path_filelist = join(path_filelists, filelist)
+
+        with open(path_filelist, 'r') as fin:
+            filenames = [line.strip() for line in fin]
+        
+        spectra = homogenize_spectra(filenames=filenames, table=table)
+
+        binpar = filelist.split('.txt')[0]
+        path_spec_out = join(path_dr7, binpar, 'raw_stack', binpar + '.txt')
+        
+        if not os.path.isfile(path_spec_out) or overwrite:
+
+            with open(path_spec_out, 'w') as fout:
+                pickle.dump(spectra, fout)
+
+            click.echo(f'{path_spec_out}')
+        else:
+            click.echo(f'Not written (overwrite with --overwrite): {path_spec_out}')
+
+
+def homogenize_spectra(filenames, table):
+    """Deredden, deredshift, regrid, and normalize spectra.
     
-    spectra[ii] = spec_normalized
+    Parameters:
+        filenames (list):
+            Names of spectra FITS files.
+        table (DataFrame):
+            Data table including redshift and ebv.
 
-"""Write regridded spectra to file"""
+    Returns:
+        array
+    """
+    grid = np.arange(3700, 7360.1, 1.0, float)
+    spectra = np.zeros((len(filenames), len(grid)))
 
+    for ii, filename in enumerate(filenames):
 
+        ind = get_table_index(table, filename)
 
+        spec_obs, wave_cen_pix1, ang_per_pix = load_spectrum(filename)
+        wave_rest = rest_wave(wave_cen_pix1, ang_per_pix, len(spec_obs), table.z[ind])
+        spec_dered = deredden(wave_rest, spec_obs, table.ebv[ind])
+        spec_raw = spec_dered * (1 + table.z[ind])
 
+        linear_interp = interp1d(wave_rest, spec_raw, bounds_error=False, fill_value=0.)
+        spec_regrid = linear_interp(grid)
 
+        mean_cont_flux = mean_flux(spec_regrid, grid, wave_low=4400, wave_upp=4500)
+        spec_normalized = spec_regrid / mean_cont_flux
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+        spectra[ii] = spec_normalized
+    
+    return spectra
 
 
 def deredden(wave, flux_obs, ebv, R_V=3.1):
-    """Deredden using Cardelli, Clayton, & Mathis (1989) extinction law."""
+    """Deredden using Cardelli, Clayton, & Mathis (1989) extinction law.
+    
+    Parameters:
+        wave (array):
+            Wavelength.
+        flux_obs (array):
+            Oberved flux.
+        ebv (float):
+            E(B-V).
+        R_V (float):
+            Default is ``3.1``.
+    
+    Returns:
+        array
+    """
     xx = 1. / (wave / 10000.)
     yy = xx - 1.82
     
