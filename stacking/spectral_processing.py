@@ -42,7 +42,9 @@ def process_spectra(filelists, overwrite):
     table = pd.read_csv(join(path_meta, 'master_data_dr7b.csv'))
 
     path_filelists = join(path_dr7, 'filelists')
-    filelists = os.listdir(path_filelists) if not filelists else filelists
+    if not filelists:
+        filelists = os.listdir(path_filelists)
+        filelists.sort(key=lambda s: float(s.split('M')[1].split('_')[0]))
 
     for filelist in filelists:
         click.echo(filelist)
@@ -51,12 +53,11 @@ def process_spectra(filelists, overwrite):
         with open(path_filelist, 'r') as fin:
             filenames = [line.strip() for line in fin]
         
-        spectra = homogenize_spectra(filenames=filenames, table=table)
-
         binpar = filelist.split('.txt')[0]
         path_spec_out = join(path_dr7, binpar, 'raw_stack', binpar + '.pck')
-        
+
         if not os.path.isfile(path_spec_out) or overwrite:
+            spectra = homogenize_spectra(filenames=filenames, table=table)
 
             with open(path_spec_out, 'wb') as fout:
                 pickle.dump(spectra, fout)
@@ -110,7 +111,7 @@ def homogenize_spectra(filenames, table):
         linear_interp = interp1d(wave_rest, spec_raw, bounds_error=False, fill_value=0.)
         spec_regrid = linear_interp(grid)
 
-        mean_cont_flux = mean_flux(spec_regrid, grid, wave_low=4400, wave_upp=4500)
+        mean_cont_flux = mean_flux(spec_regrid, grid, wave_low=4400, wave_upp=4450)
         spec_normalized = spec_regrid / mean_cont_flux
 
         spectra[ii] = spec_normalized
