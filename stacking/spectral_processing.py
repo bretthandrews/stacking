@@ -24,7 +24,7 @@ from stacking.paths import get_table_index
 @click.option('--filelists', default=None, multiple=True)
 @click.option('--overwrite', '-o', default=False, is_flag=True)
 def process_spectra(filelists, overwrite):
-    """
+    """Deredden, deredshift, regrid, and normalize spectra.
     
     Parameters:
         filelists (str):
@@ -42,11 +42,10 @@ def process_spectra(filelists, overwrite):
     table = pd.read_csv(join(path_meta, 'master_data_dr7b.csv'))
 
     path_filelists = join(path_dr7, 'filelists')
-    # filelists = ['M8.2_8.3.txt']  # Remove..........................................................
-    filelists = os.listdir(path_filelists) if filelists is None else filelists
-    
-    
+    filelists = os.listdir(path_filelists) if not filelists else filelists
+
     for filelist in filelists:
+        click.echo(filelist)
         path_filelist = join(path_filelists, filelist)
 
         with open(path_filelist, 'r') as fin:
@@ -55,16 +54,33 @@ def process_spectra(filelists, overwrite):
         spectra = homogenize_spectra(filenames=filenames, table=table)
 
         binpar = filelist.split('.txt')[0]
-        path_spec_out = join(path_dr7, binpar, 'raw_stack', binpar + '.txt')
+        path_spec_out = join(path_dr7, binpar, 'raw_stack', binpar + '.pck')
         
         if not os.path.isfile(path_spec_out) or overwrite:
 
-            with open(path_spec_out, 'w') as fout:
+            with open(path_spec_out, 'wb') as fout:
                 pickle.dump(spectra, fout)
 
             click.echo(f'{path_spec_out}')
         else:
             click.echo(f'Not written (overwrite with --overwrite): {path_spec_out}')
+
+
+def make_grid(wave_low=3700., wave_upp=7360.1, dlam=1.):
+    """Create wavelength grid.
+    
+    Parameters:
+        wave_low (float):
+            Lower limit of wavelength grid in Angstroms. Default is
+            ``3700.``.
+        wave_upp (float):
+            Upper limit of wavelength grid in Angstroms. Default is
+            ``7360.1``.
+        dlam (float):
+            Pixel size of wavelength grid in Angstroms. Default is
+            ``1.``.
+    """
+    return np.arange(wave_low, wave_upp, dlam, float)
 
 
 def homogenize_spectra(filenames, table):
@@ -79,7 +95,7 @@ def homogenize_spectra(filenames, table):
     Returns:
         array
     """
-    grid = np.arange(3700, 7360.1, 1.0, float)
+    grid = make_grid()
     spectra = np.zeros((len(filenames), len(grid)))
 
     for ii, filename in enumerate(filenames):
