@@ -81,6 +81,7 @@ def stack_resample(filelists, overwrite, samples):
 
     snr = pd.DataFrame(list(map(list, zip(*(full_snr, window_snr)))), index=indices,
                        columns=['full spec', '4400-4450 A'])
+    snr[snr > 1e14] = np.nan  # M7.0_7.1 only has one galaxy so resampling it is meaningless
     snr.to_csv(path_snr)
 
 
@@ -131,19 +132,5 @@ def check_stack(stack, binpar, path_raw, path_dr7):
     comp = pd.read_csv(path_stack_comp, delim_whitespace=True, header=None, names=['wave', 'flux'])
     stack_comp = comp.flux.values
 
-    # print(filelist, str(np.abs(stack - stack_comp).max()))
     assert np.abs(stack - stack_comp).max() < 1e-6, \
         'stack and comparison stack differ by more than 1e-6'
-
-
-
-def plot_spec(grid, spec, spec_std):
-    """spec with std"""
-    c0 = sns.color_palette()[0]
-    fig, ax = plt.subplots()
-    ax.plot(grid, spec, c=c0)
-    ax.fill_between(grid, spec - spec_std, spec + spec_std, facecolor=c0, alpha=0.5)
-
-
-snr = pd.read_csv('/Users/andrews/projects/mzr/stacks/dr7_M0.1e/results/snr/snr.csv')
-snr.plot()
