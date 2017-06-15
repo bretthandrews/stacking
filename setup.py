@@ -17,5 +17,6 @@ setup(
         [console_scripts]
         generate_filepaths=stacking.paths:generate_filepaths
         process_spectra=stacking.spectral_processing:process_spectra
+        stack_resample=stacking.stack:stack_resample
     ''',
 )
