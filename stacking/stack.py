@@ -38,11 +38,21 @@ def stack_resample(filelists, overwrite, samples):
     path_mzr = join(os.path.expanduser('~'), 'projects', 'mzr')
     path_dr7 = join(path_mzr, 'stacks', 'dr7_M0.1e')
 
-    # path_filelists = join(path_dr7, 'filelists')
-    # if not filelists:
-    #     filelists = os.listdir(path_filelists)
-    #     filelists.sort(key=lambda s: float(s.split('M')[1].split('_')[0]))
-    filelists = make_filelists()
+    path_filelists = join(path_dr7, 'filelists')
+    if not filelists:
+        filelists = os.listdir(path_filelists)
+        filelists.sort(key=lambda s: float(s.split('M')[1].split('_')[0]))
+
+    # filelists = ['M9.4_9.5.txt', 'M9.5_9.6.txt', 'M9.6_9.7.txt']
+
+    path_snr = join(path_dr7, 'results', 'snr', 'snr.csv')
+
+    if os.path.isfile(path_snr) and not overwrite:
+        raise ValueError(f'Not written (overwrite with --overwrite): {path_snr}')
+
+    full_snr = []
+    window_snr = []
+    indices = []
 
     for filelist in filelists:
         click.echo(filelist)
@@ -56,14 +66,22 @@ def stack_resample(filelists, overwrite, samples):
 
         stack = np.mean(spectra, axis=0)
 
-        # TODO check for convergence
-        # draw 10, 20, 50, 100 times and see how std changes
-        # easiest to do over a narrow range (collapse down to one number)
-        # stds = np.array(100)
+        check_stack(stack, binpar, path_raw, path_dr7)
+    
+        grid = make_grid()
+        
+        indices.append(binpar)
 
         spec_mean, spec_std = resample_stacks(spectra, samples)
+        spec_snr = stack / spec_std
+        spec_median_snr = np.median(spec_snr)
+        window_median_snr = np.median(spec_snr[(grid >=4400) & (grid <= 4450)])
+        full_snr.append(spec_median_snr)
+        window_snr.append(window_median_snr)
 
-        check_stack(stack, binpar, path_raw, path_dr7)
+    snr = pd.DataFrame(list(map(list, zip(*(full_snr, window_snr)))), index=indices,
+                       columns=['full spec', '4400-4450 A'])
+    snr.to_csv(path_snr)
 
 
 def resample_stacks(spectra, samples):
@@ -127,51 +145,5 @@ def plot_spec(grid, spec, spec_std):
     ax.fill_between(grid, spec - spec_std, spec + spec_std, facecolor=c0, alpha=0.5)
 
 
-def make_filelists():
-    """stacks"""
-    return [
-        'M7.0_7.1.txt',
-        'M7.1_7.2.txt',
-        'M7.2_7.3.txt',
-        'M7.3_7.4.txt',
-        'M7.4_7.5.txt',
-        'M7.5_7.6.txt',
-        'M7.6_7.7.txt',
-        'M7.7_7.8.txt',
-        'M7.8_7.9.txt',
-        'M7.9_8.0.txt',
-        'M8.0_8.1.txt',
-        'M8.1_8.2.txt',
-        'M8.2_8.3.txt',
-        'M8.3_8.4.txt',
-        'M8.4_8.5.txt',
-        'M8.6_8.7.txt',
-        'M8.7_8.8.txt',
-        'M8.8_8.9.txt',
-        'M8.9_9.0.txt',
-        'M9.0_9.1.txt',
-        'M9.1_9.2.txt',
-        'M9.2_9.3.txt',
-        'M9.3_9.4.txt',
-        'M9.4_9.5.txt',
-        # 'M9.5_9.6.txt',
-        # 'M9.6_9.7.txt',
-        # 'M9.7_9.8.txt',
-        # 'M9.8_9.9.txt',
-        # 'M9.9_10.0.txt',
-        # 'M10.0_10.1.txt',
-        # 'M10.1_10.2.txt',
-        # 'M10.2_10.3.txt',
-        # 'M10.3_10.4.txt',
-        # 'M10.4_10.5.txt',
-        # 'M10.5_10.6.txt',
-        # 'M10.6_10.7.txt',
-        # 'M10.7_10.8.txt',
-        # 'M10.8_10.9.txt',
-        # 'M10.9_11.0.txt',
-        # 'M11.0_11.1.txt',
-        # 'M11.1_11.2.txt',
-        # 'M11.2_11.3.txt',
-        # 'M11.3_11.4.txt',
-        # 'M11.4_11.5.txt'
-        ]
+snr = pd.read_csv('/Users/andrews/projects/mzr/stacks/dr7_M0.1e/results/snr/snr.csv')
+snr.plot()
